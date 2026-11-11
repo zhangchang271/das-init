@@ -64,7 +64,7 @@ cfg.mute_reference_s = 0.5;
 cfg.frequency_range = [1 15];
 cfg.ccf_maximum_frequency = 30;
 cfg.frequency_step = 0.1;
-cfg.preview_time_max_s = 3;
+cfg.ccf_window_half_s = 1;
 cfg.fj_reliable_range = [3 12];
 cfg.velocity = (100:800).';
 cfg.pick_velocity_range = [140 450];
@@ -86,6 +86,12 @@ if ~isempty(config_file)
     protected = {'project_root','algorithm_dir','dasqt_source'};
     for i = 1:numel(names)
         name = names{i};
+        if strcmp(name,'preview_time_max_s')
+            assert(~isfield(overrides,'ccf_window_half_s'), ...
+                'Use ccf_window_half_s instead of preview_time_max_s.');
+            cfg.ccf_window_half_s = overrides.(name);
+            continue;
+        end
         assert(isfield(cfg,name),'Unknown configuration field: %s',name);
         assert(~ismember(name,protected),'Internal path is fixed: %s',name);
         cfg.(name) = overrides.(name);
@@ -163,7 +169,8 @@ assert(numel(cfg.top_mute)==3 && numel(cfg.bottom_mute)==3 && ...
 assert(numel(cfg.filter_velocity)==2 && all(cfg.filter_velocity>0) && ...
     cfg.filter_velocity(1)<cfg.filter_velocity(2),'Invalid velocity filter.');
 validateattributes(cfg.frequency_step,{'numeric'},{'scalar','finite','positive'});
-validateattributes(cfg.preview_time_max_s,{'numeric'},{'scalar','finite','positive'});
+validateattributes(cfg.ccf_window_half_s,{'numeric'}, ...
+    {'scalar','finite','positive','<=',cfg.segment_seconds/2});
 cfg.fj_reliable_range = double(cfg.fj_reliable_range(:).');
 assert(numel(cfg.fj_reliable_range)==2 && ...
     cfg.fj_reliable_range(1)>=cfg.frequency_range(1) && ...

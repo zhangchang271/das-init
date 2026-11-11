@@ -21,18 +21,28 @@ verifyEqual(testCase,cfg.stage,'preview');
 verifyEqual(testCase,cfg.frequency_range,[1 15]);
 verifyEqual(testCase,cfg.ccf_maximum_frequency,30);
 verifyFalse(testCase,cfg.apply_gw_mute);
-verifyEqual(testCase,cfg.preview_time_max_s,3);
+verifyEqual(testCase,cfg.ccf_window_half_s,1);
 verifyEqual(testCase,cfg.fj_reliable_range,[3 12]);
 verifyEqual(testCase,cfg.frequency_step,0.1);
 verifyEqual(testCase,cfg.pick_velocity_range,[140 450]);
 verifyEqual(testCase,cfg.pick_seed_frequency,10);
 demo = workflow_config(fullfile(root,'configs','demo_small.json'));
-verifyEqual(testCase,demo.n_station,8);
+verifyEqual(testCase,demo.n_station,50);
 verifyEqual(testCase,demo.max_segments,1);
 verifyEqual(testCase,demo.minimum_segments_per_window,1);
-verifyFalse(testCase,demo.dasqt_common_mode_removal);
+verifyTrue(testCase,demo.dasqt_common_mode_removal);
+verifyEqual(testCase,demo.ccf_window_half_s,1);
 cfg = workflow_config(fullfile(root,'configs','san_jose.example.json'),'pick');
 verifyEqual(testCase,cfg.stage,'pick');
+end
+
+function testCcfWindowCrop(testCase)
+time_s = (-1.5:0.1:1.5).';
+gather = repmat((1:numel(time_s)).',1,2);
+[window,window_time] = crop_ccf_window(gather,time_s,1);
+verifyEqual(testCase,window,gather(abs(time_s)<=1,:));
+verifyEqual(testCase,window_time,time_s(abs(time_s)<=1));
+verifyEqual(testCase,window_time([1 end]),[-1;1]);
 end
 
 function testPsdUsesActiveArrayPower(testCase)

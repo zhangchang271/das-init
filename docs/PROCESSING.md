@@ -29,7 +29,7 @@
 8. H2 F-J 保留 `abs(real(FJ.dsp))`，不逐频率归一化；综合谱是有效日期原始 F-J 幅值的逐点平均。
 9. 人工 polygon 建立综合 mask，按各日 ridge 速度偏移调整，再 F-J 反变换和 J0 衰减拟合。
 
-默认流程从 CCF cache 计算无 mute、1–15 Hz H2 F-J，并由 `preview` 生成参考图样式的三联图：原始正时延 0–3 s CCF、仅用于显示的逐道 RMS 归一化 CCF，以及综合频散谱；归一化不进入 F-J 计算。
+默认 CCF 预览和 MAT 结果只保留 -1 至 +1 s 时间窗口；三联图同时显示该窗口内的原始 CCF、仅用于显示的逐道 RMS 归一化 CCF，以及综合频散谱。600 s 是每段输入的相关计算窗。F-J 仍按完整频域 CCF cache 计算；调整 `ccf_window_half_s` 后无需重算 CCF cache。旧配置中的 `preview_time_max_s` 仍可读取，并映射为同一窗口半宽。
 1–3 Hz 低于 DASQt 预处理带通下限，应重点检查 3–12 Hz。将 `apply_gw_mute` 设为 true 可启用配置的双边 mute。
 
 ## 配置和阶段

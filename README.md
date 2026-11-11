@@ -52,18 +52,20 @@ bash scripts/run.sh configs/site.local.json ccf
 bash scripts/run.sh configs/site.local.json preview
 ```
 
-For a small end-to-end deployment check without San Jose data, create one deterministic
-600-second synthetic record and run the same preview entry point:
+For a real small-data preview, extract one 600-second segment from the original
+500-channel San Jose HDF5 file, then run the normal workflow:
 
 ```bash
-python scripts/make_demo_data.py --output-dir demo_data --channels 8
+python scripts/extract_demo_segment.py /path/to/BlossomHill_20230920_00-20230920_02_ch16700-17199.h5 \
+  --output-dir demo_data_sanjose --segment-index 0
 bash scripts/run.sh configs/demo_small.json preview
 ```
 
-This demo uses 8 channels and one 600-second segment. It runs the same EDWav, PSD-CCF,
-and F-J stages as the main workflow, but its synthetic signal is only for checking installation,
-paths, cache creation, and plotting. Common-mode removal is disabled for this small synthetic
-aperture. The preview is written under `outputs/demo_small/`.
+This keeps the real 500-channel array for DASQt common-mode preprocessing, then analyzes the first
+50 channels (50 m aperture) from one 600-second segment with EDWav, PSD-CCF, and F-J. The extracted
+HDF5 remains local and is not part of the repository; the preview is written under
+`outputs/demo_sanjose_small/`. `scripts/make_demo_data.py` remains available for synthetic installation
+smoke tests only; its spectrum is not a physical dispersion result.
 
 若 MATLAB 不在 PATH 中，可设置 `MATLAB_BIN=/实际路径/bin/matlab`。
 在交互 MATLAB 中，从项目根目录运行以下命令，首次画 mask 并继续衰减提取：
@@ -93,8 +95,7 @@ CCF 设置、EDWav 道段选择或预处理片段变化会使对应日期的 CCF
 
 当前 San Jose 原始项目已运行到综合 F-J；人工 mask 与最终衰减尚未完成。
 部署包包含后续代码，不能据此视为最终衰减已验证。其他地区需重新选择有效频段、速度滤波、mute 和人工 mask。
-默认频散处理使用 1–15 Hz、无 GW mute 的 H2 F-J；`preview` 直接生成参考图样式的三联图：正时延 0–3 s CCF、仅用于显示的
-逐道 RMS 归一化 CCF，以及综合频散谱。1–3 Hz 低于 DASQt 预处理带通下限，只作显示参考，建议重点检查 3–12 Hz。
+默认 CCF 预览和 MAT 结果只保留 ±1 s 时间窗口；F-J 仍按完整频域 CCF 计算。`preview` 生成参考图样式的三联图：窗口内原始 CCF、仅用于显示的逐道 RMS 归一化 CCF，以及综合频散谱。1–3 Hz 低于 DASQt 预处理带通下限，只作显示参考，建议重点检查 3–12 Hz。
 默认 ridge 使用主流程的 `findpeaks` 趋势追踪。
 
 ## 验证

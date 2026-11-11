@@ -1,6 +1,7 @@
 # Scientific inputs and generated products stay outside version control.
 /data/
 /demo_data/
+/demo_data_sanjose/
 /outputs/
 /cache/
 /logs/

@@ -39,6 +39,39 @@ class DeploymentTests(unittest.TestCase):
                 self.assertEqual(float(handle.attrs["sampling_rate_Hz"]), 200.0)
                 self.assertEqual(int(handle.attrs["channel_end"]), 3)
 
+    def test_real_segment_extractor_preserves_samples_and_metadata(self):
+        with tempfile.TemporaryDirectory(prefix="das-extract-") as directory:
+            base = Path(directory)
+            source_dir = base / "source"
+            source_dir.mkdir()
+            source_file = source_dir / "BlossomHill_20230920_00-20230920_01_ch16700-17199.h5"
+            expected = np.arange(120000 * 500, dtype=np.int32).reshape(120000, 500)
+            with h5py.File(source_file, "w") as handle:
+                handle.create_dataset("Acquisition/Raw[0]/RawData", data=expected)
+                handle.attrs["sampling_rate_Hz"] = 200
+                handle.attrs["start_time"] = "2023-09-20 00:00:00"
+                handle.attrs["end_time"] = "2023-09-20 01:00:00"
+                handle.attrs["channel_start"] = 16700
+                handle.attrs["channel_end"] = 17199
+
+            output = base / "extracted"
+            subprocess.run(
+                [sys.executable, str(ROOT / "scripts/extract_demo_segment.py"),
+                 str(source_file), "--output-dir", str(output)],
+                check=True,
+                text=True,
+                capture_output=True,
+            )
+            files = list(output.glob("BlossomHill_*.h5"))
+            self.assertEqual(len(files), 1)
+            with h5py.File(files[0], "r") as handle:
+                data = handle["Acquisition/Raw[0]/RawData"]
+                self.assertEqual(data.shape, (120000, 500))
+                np.testing.assert_array_equal(data[:], expected)
+                self.assertEqual(handle.attrs["start_time"], "2023-09-20 00:00:00")
+                self.assertEqual(handle.attrs["end_time"], "2023-09-20 00:10:00")
+                self.assertEqual(int(handle.attrs["channel_start"]), 16700)
+
     def test_frozen_sources_are_complete_and_unchanged(self):
         self.assertEqual(verify_vendor(ROOT), 8)
 

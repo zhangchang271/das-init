@@ -377,7 +377,7 @@ p.ccf_maximum_frequency = cfg.ccf_maximum_frequency;
 p.frequency_step = frequency_step;
 p.frequency = frequency;
 p.velocity = velocity;
-p.preview_time_max_s = cfg.preview_time_max_s;
+p.ccf_window_half_s = cfg.ccf_window_half_s;
 p.fj_reliable_range = cfg.fj_reliable_range;
 
 p.pick_velocity_range = pick_velocity_range;
@@ -1810,8 +1810,11 @@ CC_nonzero = remove_zero_offset_columns(CC);
 CC_nonzero = mCCFJ.filtering(CC_nonzero,p.filter_velocity);
 positive = find(CC_nonzero.time>=0);
 negative = find(CC_nonzero.time<=0); negative = negative(2:end);
+positive = positive(:);
+negative = negative(:);
 ccf_positive = 0.5*(CC_nonzero.cct(positive,:) + flipud(CC_nonzero.cct(negative,:)));
 time_positive = CC_nonzero.time(positive);
+time_positive = time_positive(:);
 offset_all = offset_from_ccr(CC.ccr);
 keep_nonzero = abs(offset_all)>eps;
 zero_col = find(~keep_nonzero,1,'first');
@@ -1820,8 +1823,10 @@ ccf_gather(:,keep_nonzero) = ccf_positive;
 if ~isempty(zero_col)
     ccf_gather(:,zero_col) = 0.5*(CC.cct(positive,zero_col)+flipud(CC.cct(negative,zero_col)));
 end
-show_id = time_positive>=0 & time_positive<=p.preview_time_max_s;
-raw_show = ccf_gather(show_id,:);
+time_window = [-flipud(time_positive(2:end));time_positive];
+ccf_two_sided = [flipud(ccf_gather(2:end,:));ccf_gather];
+[raw_show,time_window] = crop_ccf_window( ...
+    ccf_two_sided,time_window,p.ccf_window_half_s);
 raw_clip = prctile(abs(raw_show(:)),99);
 if ~isfinite(raw_clip) || raw_clip<=0, raw_clip = 1; end
 trace_rms = sqrt(mean(raw_show.^2,1));
@@ -1835,21 +1840,21 @@ if ~isfinite(spec_clip) || spec_clip<=0, spec_clip = 1; end
 
 fig = figure('Color','w','Position',[60 40 1450 1220]);
 tiledlayout(3,1,'TileSpacing','compact','Padding','compact');
-ax = nexttile; imagesc(ax,offset_all,time_positive(show_id),raw_show);
+ax = nexttile; imagesc(ax,offset_all,time_window,raw_show);
 set(ax,'YDir','reverse'); caxis(ax,[-raw_clip raw_clip]);
 colormap(ax,redblue_map_local()); colorbar(ax);
-xlabel(ax,'Offset from reference channel (m)'); ylabel(ax,'Positive lag time (s)');
-if p.n_station==500 && p.preview_time_max_s==3 && ~p.apply_gw_mute
-    title(ax,'500-channel PSD-mCCFJ CCF, no GW mute (0--3 s)');
+xlabel(ax,'Offset from reference channel (m)'); ylabel(ax,'Time (s)');
+if p.n_station==500 && p.ccf_window_half_s==1 && ~p.apply_gw_mute
+    title(ax,'500-channel PSD-mCCFJ CCF, no GW mute (±1 s window)');
 else
-    title(ax,sprintf('%d-channel PSD-mCCFJ CCF, no GW mute (0--%.3g s)', ...
-        p.n_station,p.preview_time_max_s));
+    title(ax,sprintf('%d-channel PSD-mCCFJ CCF, no GW mute (±%.3g s window)', ...
+        p.n_station,p.ccf_window_half_s));
 end
-ax = nexttile; imagesc(ax,offset_all,time_positive(show_id),normalized_show);
+ax = nexttile; imagesc(ax,offset_all,time_window,normalized_show);
 set(ax,'YDir','reverse'); caxis(ax,[-normalized_clip normalized_clip]);
 colormap(ax,redblue_map_local()); colorbar(ax);
-xlabel(ax,'Offset from reference channel (m)'); ylabel(ax,'Positive lag time (s)');
-if p.n_station==500 && p.preview_time_max_s==3 && ~p.apply_gw_mute
+xlabel(ax,'Offset from reference channel (m)'); ylabel(ax,'Time (s)');
+if p.n_station==500 && p.ccf_window_half_s==1 && ~p.apply_gw_mute
     title(ax,'Same CCF, trace-normalized only for display QC (all 500 offsets)');
 else
     title(ax,sprintf('Same CCF, trace-normalized only for display QC (%d offsets)', ...
@@ -1862,7 +1867,7 @@ xline(ax,p.fj_reliable_range(2),'w--','LineWidth',1.4);
 xlim(ax,p.frequency_range); ylim(ax,[velocity(1) min(800,velocity(end))]);
 xlabel(ax,'Frequency (Hz)'); ylabel(ax,'Phase velocity (m/s)');
 if p.n_station==500 && isequal(p.frequency_range,[1 15]) && ...
-        p.preview_time_max_s==3 && ~p.apply_gw_mute
+        p.ccf_window_half_s==1 && ~p.apply_gw_mute
     title(ax,'H2 F-J spectrum, 1--15 Hz (DASQt preprocessing band starts at 3 Hz)');
 else
     title(ax,sprintf('H2 F-J spectrum, %.3g--%.3g Hz (preprocessing band %.3g--%.3g Hz)', ...
@@ -1871,18 +1876,20 @@ end
 png_file = fullfile(out_dir,sprintf('mccfj_composite_%dch.png',p.n_station));
 preview_file = fullfile(out_dir,sprintf('ccf_preview_%dch.mat',p.n_station));
 if p.n_station==500 && isequal(p.frequency_range,[1 15]) && ...
-        p.preview_time_max_s==3 && ~p.apply_gw_mute
+        p.ccf_window_half_s==1 && ~p.apply_gw_mute
     png_file = fullfile(out_dir,'mccfj_composite_500ch_24h.png');
-    preview_file = fullfile(out_dir,'ccf_24h_500ch_no_mute_0_3s_fj_1_15.mat');
+    preview_file = fullfile(out_dir,'ccf_24h_500ch_no_mute_pm1s_fj_1_15.mat');
 end
 exportgraphics(fig,png_file,'Resolution',300);
 if p.n_station==500 && isequal(p.frequency_range,[1 15]) && ...
-        p.preview_time_max_s==3 && ~p.apply_gw_mute
+        p.ccf_window_half_s==1 && ~p.apply_gw_mute
     copyfile(png_file,fullfile(out_dir, ...
-        'ccf_24h_500ch_no_mute_0_3s_fj_1_15_qc.png'));
+        'ccf_24h_500ch_no_mute_pm1s_fj_1_15_qc.png'));
 end
 count_sum = S.count_sum;
-save(preview_file,'ccf_gather','time_positive','offset_all','spectrum', ...
+ccf_gather = raw_show;
+ccf_time_s = time_window;
+save(preview_file,'ccf_gather','ccf_time_s','offset_all','spectrum', ...
     'ridge_velocity','frequency','velocity','p','count_sum','cache_file','-v7.3');
 end
 

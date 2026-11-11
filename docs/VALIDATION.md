@@ -16,8 +16,9 @@
 | MATLAB 小型测试 | R2021a Update 8 的 3 项测试均报告 Passed=true、Failed=false、Incomplete=false |
 | San Jose 全量计算 | MATLAB R2021a Update 8；144 个 600 s 片段、500 道，生成 EDWav 筛选、30 Hz CCF 和默认 1–14.9 Hz 综合 F-J |
 | CCF 缓存对比 | 与原项目缓存频率轴、500 个偏移和 `count_sum` 完全一致；计数范围均为 106–124，CCF 相对 Frobenius 差为 `5.82e-6` |
-| 默认 preview | 主入口生成参考图样式三联图：无 mute、0–3 s CCF、1–14.9 Hz H2 F-J；配置范围为 1–15 Hz，ridge 保留主流程的 findpeaks 趋势追踪 |
+| 默认 preview | 主入口生成参考图样式三联图：无 mute、保留 ±1 s CCF 窗口、1–14.9 Hz H2 F-J；每段仍使用完整 600 s 输入窗，ridge 使用主流程的 findpeaks 趋势追踪 |
 | 频散谱复现 | 新旧 F-J 网格相同（1.0–14.9 Hz、100–800 m/s），谱相对 Frobenius 差为 `1.16e-5` |
+| 小数据 demo | 原始 San Jose 2023-09-20 00:00–00:10，完整阵列做 DASQt 共模预处理，前 50 道做 EDWav/CCF/F-J；CCF 预览和 MAT 结果保留 ±1 s 窗口 |
 
 MATLAB 测试直接对比有效道平均功率谱的 PSD 公式，并检查被拒绝道对的计数为零、
 整体幅度缩放不改变 PSD CCF；另检查 JSON 配置和 shell 参数传递。
