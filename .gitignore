@@ -1,5 +1,6 @@
 # Scientific inputs and generated products stay outside version control.
 /data/
+/demo_data/
 /outputs/
 /cache/
 /logs/
@@ -19,6 +20,8 @@
 *.tar.gz
 # Machine-specific configuration and environments.
 /configs/*.local.json
+/configs/sj_run.json
+/configs/sj_run_32w.json
 .venv/
 __pycache__/
 *.py[cod]

@@ -22,7 +22,11 @@
   "ccf_taper": "No",
   "ccf_reference_gather": true,
   "reference_channel": 1,
-  "frequency_range": [6, 30],
+  "frequency_range": [1, 15],
+  "ccf_maximum_frequency": 30,
+  "apply_gw_mute": false,
+  "preview_time_max_s": 3,
+  "fj_reliable_range": [3, 12],
   "filter_velocity": [50, 1000],
   "top_mute": [300, -0.015, 16],
   "bottom_mute": [160, 0.05, 12]

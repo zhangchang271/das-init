@@ -54,6 +54,7 @@ bottom_mute = cfg.bottom_mute;
 mute_reference_s = cfg.mute_reference_s;
 frequency_range = cfg.frequency_range;
 frequency_step = cfg.frequency_step;
+apply_gw_mute = cfg.apply_gw_mute;
 velocity = cfg.velocity;
 pick_velocity_range = cfg.pick_velocity_range;
 pick_seed_frequency = cfg.pick_seed_frequency;
@@ -105,15 +106,50 @@ fprintf('DASQt cache: %d x %d s, target raw channels %d--%d.\n', ...
     nseg,segment_seconds,raw_channel_start+raw_channel_first0, ...
     raw_channel_start+raw_channel_first0+n_station-1);
 
-load_edwav_class_local(algorithm_dir);
-proxy_cell = cell(nseg,1);
-record_rms_cell = cell(nseg,1);
-pool = gcp('nocreate');
-if isempty(pool) || pool.NumWorkers~=edwav_workers
-    if ~isempty(pool), delete(pool); end
-    parpool('local',edwav_workers);
+edwav_cache_config.segment_paths = file_paths;
+edwav_cache_config.segment_inventory = [[cache_files.bytes].', ...
+    [cache_files.datenum].'];
+edwav_cache_config.raw_valid = raw_valid;
+edwav_cache_config.Fs = Fs;
+edwav_cache_config.station_x = station_x;
+edwav_cache_config.segment_seconds = segment_seconds;
+edwav_cache_config.dasqt_band = dasqt_band;
+edwav_cache_config.dasqt_butter_order = dasqt_butter_order;
+edwav_cache_config.dasqt_tukey_alpha = dasqt_tukey_alpha;
+edwav_cache_config.dasqt_common_mode_removal = dasqt_common_mode_removal;
+edwav_cache_config.edwav_band = edwav_band;
+edwav_cache_config.edwav_frequency_resolution = edwav_frequency_resolution;
+edwav_cache_config.edwav_noise_threshold_k_mad = edwav_noise_threshold_k_mad;
+edwav_cache_config.edwav_noise_type = edwav_noise_type;
+edwav_cache_config.edwav_smoothing_fraction = edwav_smoothing_fraction;
+edwav_cache_config.edwav_window_seconds = edwav_window_seconds;
+edwav_cache_config.edwav_distance_seconds = edwav_distance_seconds;
+edwav_cache_file = fullfile(out_dir,'edwav_screening.mat');
+reuse_edwav = false;
+if isfile(edwav_cache_file)
+    cached_edwav = load(edwav_cache_file,'edwav_cache_config');
+    if isfield(cached_edwav,'edwav_cache_config') && ...
+            isequaln(cached_edwav.edwav_cache_config,edwav_cache_config)
+        cached_edwav = load(edwav_cache_file,'proxy','record_rms_60s');
+        reuse_edwav = isfield(cached_edwav,'proxy') && ...
+            isfield(cached_edwav,'record_rms_60s');
+    end
 end
-parfor iseg = 1:nseg
+
+if reuse_edwav
+    proxy = cached_edwav.proxy;
+    record_rms_60s = cached_edwav.record_rms_60s;
+    fprintf('复用匹配的 EDWav 筛选缓存：%s\n',edwav_cache_file);
+else
+    load_edwav_class_local(algorithm_dir);
+    proxy_cell = cell(nseg,1);
+    record_rms_cell = cell(nseg,1);
+    pool = gcp('nocreate');
+    if isempty(pool) || pool.NumWorkers~=edwav_workers
+        if ~isempty(pool), delete(pool); end
+        parpool('local',edwav_workers);
+    end
+    parfor iseg = 1:nseg
     load_edwav_class_local(algorithm_dir);
     A = load(file_paths(iseg),'wave');
     wave = double(A.wave);
@@ -131,13 +167,14 @@ parfor iseg = 1:nseg
             'NW',edwav_window_seconds,'DW',edwav_distance_seconds);
         proxy_row(ich) = result(1);
     end
-    proxy_cell{iseg} = proxy_row;
-    record_rms_cell{iseg} = rms_row;
-end
-proxy = vertcat(proxy_cell{:});
-record_rms_60s = vertcat(record_rms_cell{:});
-for iseg = 1:nseg
-    fprintf('EDWav %3d/%3d: %s\n',iseg,nseg,segment_start(iseg));
+        proxy_cell{iseg} = proxy_row;
+        record_rms_cell{iseg} = rms_row;
+    end
+    proxy = vertcat(proxy_cell{:});
+    record_rms_60s = vertcat(record_rms_cell{:});
+    for iseg = 1:nseg
+        fprintf('EDWav %3d/%3d: %s\n',iseg,nseg,segment_start(iseg));
+    end
 end
 
 eligible = raw_valid & isfinite(proxy) & proxy>0;
@@ -153,6 +190,7 @@ fprintf('EDWav保留：%d / %d 个有效台站片段（%.1f%%）\n', ...
 save(fullfile(out_dir,'edwav_screening.mat'), ...
     'segment_start','file_paths','file_day','raw_valid','proxy', ...
     'eligible','log_proxy','keep','center','spread','threshold', ...
+    'edwav_cache_config','record_rms_60s', ...
     'Fs','station_x','segment_seconds','dasqt_cache_dir', ...
     'dasqt_band','dasqt_butter_order','dasqt_tukey_alpha', ...
     'dasqt_common_mode_removal','channel_spacing_m','gauge_length_m', ...
@@ -165,14 +203,24 @@ write_edwav_csv(fullfile(out_dir,'edwav_segments.csv'), ...
     segment_start,proxy,raw_valid,eligible,keep);
 
 segment_keep_any_pair = sum(keep,2)>=2;
-segment_keep_all_500 = sum(keep,2)==n_station;
+segment_keep_all_stations = sum(keep,2)==n_station;
 segment_keep_fraction = sum(keep,2)/n_station;
 record_time_hours = ((0:size(record_rms_60s,1)-1)*preview_seconds)/3600;
+record_duration_hours = size(record_rms_60s,1)*preview_seconds/3600;
 
-save(fullfile(out_dir,'sjdas_500ch_24h_record_preview.mat'), ...
+if n_station==500
+    record_preview_file = fullfile(out_dir,'sjdas_500ch_24h_record_preview.mat');
+    record_preview_plot = fullfile(out_dir,'sjdas_500ch_24h_record_edwav.png');
+else
+    record_preview_file = fullfile(out_dir, ...
+        sprintf('sjdas_%dch_record_preview.mat',n_station));
+    record_preview_plot = fullfile(out_dir, ...
+        sprintf('sjdas_%dch_record_edwav.png',n_station));
+end
+save(record_preview_file, ...
     'record_rms_60s','record_time_hours','preview_seconds', ...
     'segment_start','keep','raw_valid','eligible','proxy','threshold', ...
-    'segment_keep_any_pair','segment_keep_all_500','segment_keep_fraction', ...
+    'segment_keep_any_pair','segment_keep_all_stations','segment_keep_fraction', ...
     'station_x','Fs','channel_spacing_m','gauge_length_m', ...
     'dasqt_cache_dir','edwav_band','edwav_noise_threshold_k_mad', ...
     '-v7.3');
@@ -189,25 +237,37 @@ if ~isempty(finite_db)
     if all(isfinite(db_lim)) && db_lim(1)<db_lim(2), caxis(ax,db_lim); end
 end
 xlabel(ax,'Time (h)'); ylabel(ax,'Channel position (m)');
-title(ax,'DASQt-preprocessed 500-channel, 24 h record (60 s RMS preview)');
+if n_station==500
+    record_title = 'DASQt-preprocessed 500-channel, 24 h record (60 s RMS preview)';
+else
+    record_title = sprintf('DASQt-preprocessed %d-channel, %.3g h record (60 s RMS preview)', ...
+        n_station,record_duration_hours);
+end
+title(ax,record_title);
 ax = nexttile;
 imagesc(ax,1:nseg,station_x,keep.');
 axis(ax,'xy'); caxis(ax,[0 1]); colormap(ax,gray); colorbar(ax);
 xlabel(ax,'600 s segment'); ylabel(ax,'Channel position (m)');
 title(ax,sprintf('EDWav keep mask: %d/%d segments have at least two retained channels', ...
     sum(segment_keep_any_pair),nseg));
-exportgraphics(fig_record,fullfile(out_dir, ...
-    'sjdas_500ch_24h_record_edwav.png'),'Resolution',250);
+exportgraphics(fig_record,record_preview_plot,'Resolution',250);
 
-fprintf(['500道24 h记录预览：%s\n' ...
-    '至少2道通过EDWav：%d/%d个600 s片段（%.2f h）；500道全部通过：%d/%d。\n'], ...
-    fullfile(out_dir,'sjdas_500ch_24h_record_edwav.png'), ...
-    sum(segment_keep_any_pair),nseg, ...
-    sum(segment_keep_any_pair)*segment_seconds/3600, ...
-    sum(segment_keep_all_500),nseg);
+if n_station==500
+    fprintf(['500道24 h记录预览：%s\n' ...
+        '至少2道通过EDWav：%d/%d个600 s片段（%.2f h）；500道全部通过：%d/%d。\n'], ...
+        record_preview_plot,sum(segment_keep_any_pair),nseg, ...
+        sum(segment_keep_any_pair)*segment_seconds/3600, ...
+        sum(segment_keep_all_stations),nseg);
+else
+    fprintf(['%d道记录预览：%s\n' ...
+        '至少2道通过EDWav：%d/%d个600 s片段（%.2f h）；%d道全部通过：%d/%d。\n'], ...
+        n_station,record_preview_plot,sum(segment_keep_any_pair),nseg, ...
+        sum(segment_keep_any_pair)*segment_seconds/3600, ...
+        n_station,sum(segment_keep_all_stations),nseg);
+end
 
 if stop_after_edwav_record
-    fprintf('本次按要求停在500道24 h记录和EDWav筛选，未进入CCF/F-J。\n');
+    fprintf('本次按要求停在%d道记录和EDWav筛选，未进入CCF/F-J。\n',n_station);
     return;
 end
 
@@ -265,7 +325,8 @@ for id = 1:numel(candidate_dates)
     end
 end
 
-frequency = (frequency_range(1):frequency_step:frequency_range(2)).';
+frequency = (frequency_range(1):frequency_step: ...
+    (frequency_range(2)-frequency_step/2)).';
 
 p.Fs = Fs;
 p.station_x = station_x;
@@ -306,14 +367,18 @@ p.attenuation_envelope = attenuation_envelope;
 
 p.distance_bin_m = distance_bin_m;
 p.filter_velocity = filter_velocity;
+p.apply_gw_mute = apply_gw_mute;
 p.top_mute = top_mute;
 p.bottom_mute = bottom_mute;
 p.mute_reference_s = mute_reference_s;
 
 p.frequency_range = frequency_range;
+p.ccf_maximum_frequency = cfg.ccf_maximum_frequency;
 p.frequency_step = frequency_step;
 p.frequency = frequency;
 p.velocity = velocity;
+p.preview_time_max_s = cfg.preview_time_max_s;
+p.fj_reliable_range = cfg.fj_reliable_range;
 
 p.pick_velocity_range = pick_velocity_range;
 p.pick_seed_frequency = pick_seed_frequency;
@@ -360,19 +425,9 @@ parfor id = 1:numel(dates)
         file_ids_24h{id},file_paths,keep,p,ccf_cache_files(id));
 end
 reference_valid_segments = sum(keep(:,reference_channel));
-fprintf('固定参考道 ch%d 可参与CCF：%d/%d个600 s片段（%.2f h）；0 m自相关保留在500-trace gather但不进入F-J。\n', ...
+fprintf('固定参考道 ch%d 可参与CCF：%d/%d个600 s片段（%.2f h）；0 m自相关保留在%d-trace gather但不进入F-J。\n', ...
     raw_channel_start+raw_channel_first0+reference_channel-1,reference_valid_segments,nseg, ...
-    reference_valid_segments*segment_seconds/3600);
-
-% 先输出全500道24 h CCF gather（正时延、过滤和双边mute前后）。
-if numel(dates)==1 && cache_ok(1)
-    try
-        plot_ccf_gather_24h(ccf_cache_files(1),p,out_dir);
-    catch ME
-        warning('SJ:DAS:CCFGatherPlot', ...
-            '24 h CCF gather绘图失败：%s',ME.message);
-    end
-end
+    reference_valid_segments*segment_seconds/3600,n_station);
 
 if strcmp(cfg.stage,'ccf')
     fprintf('CCF cache stage complete: %s\n',cache_dir);
@@ -448,31 +503,25 @@ composite_ridge_index = pickRidgeAlongTrend( ...
 
 composite_ridge_velocity = velocity(composite_ridge_index);
 
-save(fullfile(out_dir,'mccfj_composite_500ch_24h.mat'), ...
+if n_station==500
+    composite_file = fullfile(out_dir,'mccfj_composite_500ch_24h.mat');
+else
+    composite_file = fullfile(out_dir, ...
+        sprintf('mccfj_composite_%dch.mat',n_station));
+end
+save(composite_file, ...
     'dates','frequency','velocity','daily_spectrum', ...
     'daily_ridge_velocity','pair_window_count', ...
     'composite_spectrum','composite_ridge_velocity', ...
     'keep','raw_valid','reference_valid_segments','p','-v7.3');
 
-fig_composite = figure('Color','w','Position',[100 80 1100 700]);
-imagesc(frequency,velocity,composite_spectrum);
-axis xy; colormap(jet); colorbar;
-finite_spec = composite_spectrum(isfinite(composite_spectrum));
-if ~isempty(finite_spec)
-    spec_limit = prctile(finite_spec,99.5);
-    if isfinite(spec_limit) && spec_limit>0, caxis([0 spec_limit]); end
-end
-hold on;
-plot(frequency,composite_ridge_velocity,'k-','LineWidth',1.5);
-xlim(frequency_range); ylim([velocity(1) min(800,velocity(end))]);
-xlabel('Frequency (Hz)'); ylabel('Phase velocity (m/s)');
-title('500-channel, 24 h PSD-mCCFJ composite F-J spectrum');
-exportgraphics(fig_composite,fullfile(out_dir, ...
-    'mccfj_composite_500ch_24h.png'),'Resolution',300);
+plot_default_preview(ccf_cache_files(1),p, ...
+    frequency,velocity,composite_spectrum,composite_ridge_velocity,out_dir);
 
 if stop_after_composite
-    fprintf(['已完成500道24 h CCF和综合F-J预览，暂不进入人工polygon mask。\n' ...
-        '首次选mask使用stage=pick；已有mask后使用stage=attenuation。\n']);
+    fprintf(['已完成%d道CCF和综合F-J预览，暂不进入人工polygon mask。\n' ...
+        '首次选mask使用stage=pick；已有mask后使用stage=attenuation。\n'], ...
+        n_station);
     return;
 end
 
@@ -765,7 +814,7 @@ cache_config.Fs = p.Fs;
 cache_config.station_x = p.station_x;
 cache_config.segment_samples = p.segment_samples;
 cache_config.segment_inventory = p.segment_inventory(ids,:);
-cache_config.maximum_frequency = p.frequency_range(2);
+cache_config.maximum_frequency = p.ccf_maximum_frequency;
 
 cache_config.time_normalization = p.ccf_time_normalization;
 cache_config.frequency_normalization = p.ccf_frequency_normalization;
@@ -839,13 +888,13 @@ for ii = 1:numel(ids)
         'FL',p.ccf_fft_length, ...
         'NT',p.ccf_time_normalization, ...
         'NF',p.ccf_frequency_normalization, ...
-        'FM',p.frequency_range(2), ...
+        'FM',p.ccf_maximum_frequency, ...
         'FD',p.ccf_frequency_decimation, ...
         'TP',p.ccf_taper, ...
         'RR',rr, ...
         'GPU','No');
 
-    frequency_id = C.freq<=p.frequency_range(2);
+    frequency_id = C.freq<=p.ccf_maximum_frequency;
     count = double(C.info.cstack(:).');
 
     if isempty(ccf_sum)
@@ -953,22 +1002,18 @@ data = 0.5*( ...
     CC.cct(positive,:) + ...
     flipud(CC.cct(negative,:)));
 
-reference_n = round(p.mute_reference_s/dt);
-r = offset.';
-
-T1 = round(reference_n/p.top_mute(3));
-T0 = round(p.top_mute(2)/dt);
-
-data = GW_mute( ...
-    data,T1,r,zeros(size(r)),T0, ...
-    p.top_mute(1),dt,0);
-
-T1 = round(reference_n/p.bottom_mute(3));
-T0 = round(p.bottom_mute(2)/dt);
-
-data = GW_mute1( ...
-    data,T1,r,zeros(size(r)),T0, ...
-    p.bottom_mute(1),dt,0);
+if p.apply_gw_mute
+    reference_n = round(p.mute_reference_s/dt);
+    r = offset.';
+    T1 = round(reference_n/p.top_mute(3));
+    T0 = round(p.top_mute(2)/dt);
+    data = GW_mute(data,T1,r,zeros(size(r)),T0, ...
+        p.top_mute(1),dt,0);
+    T1 = round(reference_n/p.bottom_mute(3));
+    T0 = round(p.bottom_mute(2)/dt);
+    data = GW_mute1(data,T1,r,zeros(size(r)),T0, ...
+        p.bottom_mute(1),dt,0);
+end
 
 %% 恢复对称互相关
 CC.cct = [ ...
@@ -1042,9 +1087,31 @@ spectrum_day = interp1( ...
     FJ.frq(:),spectrum.',p.frequency(:), ...
     'linear',nan).';
 
+% The transform may represent an exact 1 Hz endpoint as 1+roundoff.
+% Snap only targets outside the source range by less than one millionth
+% of a frequency step; do not extrapolate a genuinely missing band.
+frequency_tolerance = max(100*eps(max(abs(FJ.frq))), ...
+    p.frequency_step*1e-6);
+below_first = p.frequency(:)<FJ.frq(1) & ...
+    FJ.frq(1)-p.frequency(:)<=frequency_tolerance;
+above_last = p.frequency(:)>FJ.frq(end) & ...
+    p.frequency(:)-FJ.frq(end)<=frequency_tolerance;
+if any(below_first)
+    spectrum_day(:,below_first) = repmat(spectrum(:,1),1,nnz(below_first));
+end
+if any(above_last)
+    spectrum_day(:,above_last) = repmat(spectrum(:,end),1,nnz(above_last));
+end
+
 ridge_day = interp1( ...
     FJ.frq(:),ridge_velocity(:),p.frequency(:), ...
     'linear',nan);
+if any(below_first)
+    ridge_day(below_first) = ridge_velocity(1);
+end
+if any(above_last)
+    ridge_day(above_last) = ridge_velocity(end);
+end
 end
 
 %% 使用完整综合人工mask，并根据当天ridge自动微调后提取衰减
@@ -1723,6 +1790,100 @@ n = 256;
 left = [linspace(0,1,n/2).' linspace(0,1,n/2).' ones(n/2,1)];
 right = [ones(n/2,1) linspace(1,0,n/2).' linspace(1,0,n/2).'];
 cmap = [left;right];
+end
+
+function plot_default_preview(cache_file,p, ...
+    frequency,velocity,spectrum,ridge_velocity,out_dir)
+%PLOT_DEFAULT_PREVIEW Write the default no-mute CCF/F-J three-panel figure.
+S = load(cache_file,'ccf','freq','ccr','info','count_sum');
+df = median(diff(S.freq));
+CC.freq = (0:df:p.Fs/2).';
+CC.ccf = zeros(numel(CC.freq),size(S.ccf,2),'like',S.ccf);
+CC.ccf(1:size(S.ccf,1),:) = S.ccf;
+CC.ccr = S.ccr;
+CC.info = S.info;
+CC.cct = fftshift(ifft([CC.ccf;conj(CC.ccf(end-1:-1:2,:))],[],1,'symmetric'),1);
+CC.time = ((1:size(CC.cct,1))-(floor(size(CC.cct,1)/2)+1))./p.Fs;
+CC = mCCFJ.stack_bin(CC,p.distance_bin_m);
+CC.ccf(~isfinite(CC.ccf)) = 0;
+CC_nonzero = remove_zero_offset_columns(CC);
+CC_nonzero = mCCFJ.filtering(CC_nonzero,p.filter_velocity);
+positive = find(CC_nonzero.time>=0);
+negative = find(CC_nonzero.time<=0); negative = negative(2:end);
+ccf_positive = 0.5*(CC_nonzero.cct(positive,:) + flipud(CC_nonzero.cct(negative,:)));
+time_positive = CC_nonzero.time(positive);
+offset_all = offset_from_ccr(CC.ccr);
+keep_nonzero = abs(offset_all)>eps;
+zero_col = find(~keep_nonzero,1,'first');
+ccf_gather = zeros(numel(time_positive),numel(offset_all),'like',ccf_positive);
+ccf_gather(:,keep_nonzero) = ccf_positive;
+if ~isempty(zero_col)
+    ccf_gather(:,zero_col) = 0.5*(CC.cct(positive,zero_col)+flipud(CC.cct(negative,zero_col)));
+end
+show_id = time_positive>=0 & time_positive<=p.preview_time_max_s;
+raw_show = ccf_gather(show_id,:);
+raw_clip = prctile(abs(raw_show(:)),99);
+if ~isfinite(raw_clip) || raw_clip<=0, raw_clip = 1; end
+trace_rms = sqrt(mean(raw_show.^2,1));
+trace_rms(~isfinite(trace_rms) | trace_rms<=0) = 1;
+normalized_show = raw_show./trace_rms;
+normalized_clip = prctile(abs(normalized_show(:)),99);
+if ~isfinite(normalized_clip) || normalized_clip<=0, normalized_clip = 1; end
+finite_spec = spectrum(isfinite(spectrum));
+spec_clip = prctile(finite_spec,99.5);
+if ~isfinite(spec_clip) || spec_clip<=0, spec_clip = 1; end
+
+fig = figure('Color','w','Position',[60 40 1450 1220]);
+tiledlayout(3,1,'TileSpacing','compact','Padding','compact');
+ax = nexttile; imagesc(ax,offset_all,time_positive(show_id),raw_show);
+set(ax,'YDir','reverse'); caxis(ax,[-raw_clip raw_clip]);
+colormap(ax,redblue_map_local()); colorbar(ax);
+xlabel(ax,'Offset from reference channel (m)'); ylabel(ax,'Positive lag time (s)');
+if p.n_station==500 && p.preview_time_max_s==3 && ~p.apply_gw_mute
+    title(ax,'500-channel PSD-mCCFJ CCF, no GW mute (0--3 s)');
+else
+    title(ax,sprintf('%d-channel PSD-mCCFJ CCF, no GW mute (0--%.3g s)', ...
+        p.n_station,p.preview_time_max_s));
+end
+ax = nexttile; imagesc(ax,offset_all,time_positive(show_id),normalized_show);
+set(ax,'YDir','reverse'); caxis(ax,[-normalized_clip normalized_clip]);
+colormap(ax,redblue_map_local()); colorbar(ax);
+xlabel(ax,'Offset from reference channel (m)'); ylabel(ax,'Positive lag time (s)');
+if p.n_station==500 && p.preview_time_max_s==3 && ~p.apply_gw_mute
+    title(ax,'Same CCF, trace-normalized only for display QC (all 500 offsets)');
+else
+    title(ax,sprintf('Same CCF, trace-normalized only for display QC (%d offsets)', ...
+        p.n_station));
+end
+ax = nexttile; imagesc(ax,frequency,velocity,spectrum); axis(ax,'xy');
+caxis(ax,[0 spec_clip]); colormap(ax,jet); colorbar(ax); hold(ax,'on');
+plot(ax,frequency,ridge_velocity,'k-','LineWidth',1.4);
+xline(ax,p.fj_reliable_range(2),'w--','LineWidth',1.4);
+xlim(ax,p.frequency_range); ylim(ax,[velocity(1) min(800,velocity(end))]);
+xlabel(ax,'Frequency (Hz)'); ylabel(ax,'Phase velocity (m/s)');
+if p.n_station==500 && isequal(p.frequency_range,[1 15]) && ...
+        p.preview_time_max_s==3 && ~p.apply_gw_mute
+    title(ax,'H2 F-J spectrum, 1--15 Hz (DASQt preprocessing band starts at 3 Hz)');
+else
+    title(ax,sprintf('H2 F-J spectrum, %.3g--%.3g Hz (preprocessing band %.3g--%.3g Hz)', ...
+        p.frequency_range(1),p.frequency_range(2),p.dasqt_band(1),p.dasqt_band(2)));
+end
+png_file = fullfile(out_dir,sprintf('mccfj_composite_%dch.png',p.n_station));
+preview_file = fullfile(out_dir,sprintf('ccf_preview_%dch.mat',p.n_station));
+if p.n_station==500 && isequal(p.frequency_range,[1 15]) && ...
+        p.preview_time_max_s==3 && ~p.apply_gw_mute
+    png_file = fullfile(out_dir,'mccfj_composite_500ch_24h.png');
+    preview_file = fullfile(out_dir,'ccf_24h_500ch_no_mute_0_3s_fj_1_15.mat');
+end
+exportgraphics(fig,png_file,'Resolution',300);
+if p.n_station==500 && isequal(p.frequency_range,[1 15]) && ...
+        p.preview_time_max_s==3 && ~p.apply_gw_mute
+    copyfile(png_file,fullfile(out_dir, ...
+        'ccf_24h_500ch_no_mute_0_3s_fj_1_15_qc.png'));
+end
+count_sum = S.count_sum;
+save(preview_file,'ccf_gather','time_positive','offset_all','spectrum', ...
+    'ridge_velocity','frequency','velocity','p','count_sum','cache_file','-v7.3');
 end
 
 function CC = remove_zero_offset_columns(CC)

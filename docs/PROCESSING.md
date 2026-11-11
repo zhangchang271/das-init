@@ -25,12 +25,12 @@
    其中 `epsilon = 1e-6 * mean_f(mean_valid_k(|Xk(f)|²))`，频率范围由 mCCFJ 的 FM 决定。
 
 6. 对每个道对按其有效窗数线性平均；保存 `count_sum`。不加 OneBit、逐道白化或相位加权叠加。
-7. CCF 缓存保存至 FM；补零恢复时域后，距离分箱、去掉零距列、速度滤波、正负时延对称平均和双边 mute。
+7. CCF 缓存保存至 30 Hz；补零恢复时域后，距离分箱、去掉零距列、速度滤波和正负时延对称平均。默认不做 GW mute；`apply_gw_mute=true` 时才应用双边 mute。
 8. H2 F-J 保留 `abs(real(FJ.dsp))`，不逐频率归一化；综合谱是有效日期原始 F-J 幅值的逐点平均。
 9. 人工 polygon 建立综合 mask，按各日 ridge 速度偏移调整，再 F-J 反变换和 J0 衰减拟合。
 
-显示中的色标裁剪不改变观测。原项目另有无 mute、1–15 Hz QC 预览；其设置与这里正式的
-6–30 Hz 主流程不同。部署包当前保留正式主流程，未把那些辅助 QC 脚本混入入口。
+默认流程从 CCF cache 计算无 mute、1–15 Hz H2 F-J，并由 `preview` 生成参考图样式的三联图：原始正时延 0–3 s CCF、仅用于显示的逐道 RMS 归一化 CCF，以及综合频散谱；归一化不进入 F-J 计算。
+1–3 Hz 低于 DASQt 预处理带通下限，应重点检查 3–12 Hz。将 `apply_gw_mute` 设为 true 可启用配置的双边 mute。
 
 ## 配置和阶段
 

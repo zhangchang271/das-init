@@ -2,7 +2,10 @@ function check_environment(cfg)
 %CHECK_ENVIRONMENT Check the actual CPU workflow without reading DAS data.
 if nargin<1, cfg = workflow_config(); end
 assert(isunix,'The current launcher supports Linux/macOS shell commands.');
-assert(~verLessThan('matlab','9.14'),'Use MATLAB R2023a or newer.');
+if verLessThan('matlab','9.14')
+    warning('DAS:MATLABVersion', ...
+        'mCCFJ recommends MATLAB R2023a or newer; this version is older.');
+end
 assert(license('test','Signal_Toolbox') && exist('findpeaks','file')~=0, ...
     'Signal Processing Toolbox is required.');
 assert(license('test','Distrib_Computing_Toolbox') && exist('parpool','file')~=0, ...

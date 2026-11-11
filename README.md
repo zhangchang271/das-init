@@ -5,13 +5,13 @@
 
 ```text
 DASQt 全道预处理 → EDWav 筛选 → 600 s PSD互相关 → 按有效窗数叠加
-→ 距离分箱 / 速度滤波 / 双边 mute → H2 F-J
+→ 距离分箱 / 速度滤波 → H2 F-J（默认不做 GW mute）
 → 综合谱人工 polygon → 各日自适应 mask → F-J反变换 → 衰减提取
 ```
 
 ## 环境
 
-- Linux；MATLAB R2023a 或更新版本，Signal Processing Toolbox、Parallel Computing Toolbox。
+- Linux；推荐 MATLAB R2023a 或更新版本，Signal Processing Toolbox、Parallel Computing Toolbox。
 - Python 3.12。预处理依赖固定为 NumPy 1.26.4、SciPy 1.13.1、h5py 3.12.1。
 - 默认 CPU 计算；并行进程数由配置控制。DASQt 只带所需后端源码，不需要 Qt GUI 或 PyTorch。
 - MATLAB 及工具箱由目标机器提供，仓库不包含它们。
@@ -46,11 +46,24 @@ cp configs/san_jose.example.json configs/site.local.json
 # 首先检查 Python 和冻结的第三方代码，不读取原始数据。
 .venv/bin/python scripts/check_python.py
 
-# 可分步运行；preview 是默认配置，会停在综合 F-J 频散谱。
+# 可分步运行；preview 是默认配置，会停在综合 F-J 频散谱并生成 CCF/F-J 三联图。
 bash scripts/run.sh configs/site.local.json edwav
 bash scripts/run.sh configs/site.local.json ccf
 bash scripts/run.sh configs/site.local.json preview
 ```
+
+For a small end-to-end deployment check without San Jose data, create one deterministic
+600-second synthetic record and run the same preview entry point:
+
+```bash
+python scripts/make_demo_data.py --output-dir demo_data --channels 8
+bash scripts/run.sh configs/demo_small.json preview
+```
+
+This demo uses 8 channels and one 600-second segment. It runs the same EDWav, PSD-CCF,
+and F-J stages as the main workflow, but its synthetic signal is only for checking installation,
+paths, cache creation, and plotting. Common-mode removal is disabled for this small synthetic
+aperture. The preview is written under `outputs/demo_small/`.
 
 若 MATLAB 不在 PATH 中，可设置 `MATLAB_BIN=/实际路径/bin/matlab`。
 在交互 MATLAB 中，从项目根目录运行以下命令，首次画 mask 并继续衰减提取：
@@ -65,7 +78,7 @@ run_workflow('configs/site.local.json','pick');
 bash scripts/run.sh configs/site.local.json attenuation
 ```
 
-重新执行会复用匹配的预处理与 CCF 缓存；EDWav 当前仍逐段计算。
+重新执行会复用匹配的预处理、EDWav 筛选与 CCF 缓存。
 预处理参数、源文件大小或修改时间变化会使相关片段缓存失效。
 CCF 设置、EDWav 道段选择或预处理片段变化会使对应日期的 CCF 失效。
 只改 mute、F-J 或 mask 时可复用 CCF。每次运行保存完整配置、MATLAB 环境及算法源码指纹。
@@ -80,6 +93,9 @@ CCF 设置、EDWav 道段选择或预处理片段变化会使对应日期的 CCF
 
 当前 San Jose 原始项目已运行到综合 F-J；人工 mask 与最终衰减尚未完成。
 部署包包含后续代码，不能据此视为最终衰减已验证。其他地区需重新选择有效频段、速度滤波、mute 和人工 mask。
+默认频散处理使用 1–15 Hz、无 GW mute 的 H2 F-J；`preview` 直接生成参考图样式的三联图：正时延 0–3 s CCF、仅用于显示的
+逐道 RMS 归一化 CCF，以及综合频散谱。1–3 Hz 低于 DASQt 预处理带通下限，只作显示参考，建议重点检查 3–12 Hz。
+默认 ridge 使用主流程的 `findpeaks` 趋势追踪。
 
 ## 验证
 

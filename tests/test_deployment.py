@@ -19,6 +19,26 @@ from check_python import verify_vendor
 
 
 class DeploymentTests(unittest.TestCase):
+    def test_small_demo_generator_writes_blossomhill_record(self):
+        with tempfile.TemporaryDirectory(prefix="das-demo-") as directory:
+            output = Path(directory) / "demo"
+            subprocess.run(
+                [sys.executable, str(ROOT / "scripts/make_demo_data.py"),
+                 "--output-dir", str(output), "--channels", "4",
+                 "--duration-seconds", "600"],
+                check=True,
+                text=True,
+                capture_output=True,
+            )
+            files = list(output.glob("BlossomHill_*.h5"))
+            self.assertEqual(len(files), 1)
+            with h5py.File(files[0], "r") as handle:
+                data = handle["Acquisition/Raw[0]/RawData"]
+                self.assertEqual(data.shape, (120000, 4))
+                self.assertEqual(data.dtype, np.dtype("float32"))
+                self.assertEqual(float(handle.attrs["sampling_rate_Hz"]), 200.0)
+                self.assertEqual(int(handle.attrs["channel_end"]), 3)
+
     def test_frozen_sources_are_complete_and_unchanged(self):
         self.assertEqual(verify_vendor(ROOT), 8)
 
