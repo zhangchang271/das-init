@@ -1,0 +1,4 @@
+# Versions used by the original SJDAS preprocessing environment (Python 3.12).
+numpy==1.26.4
+scipy==1.13.1
+h5py==3.12.1

@@ -1,0 +1,3 @@
+* text=auto eol=lf
+# Keep the exact third-party bytes recorded by vendor/manifest.json.
+vendor/** -text

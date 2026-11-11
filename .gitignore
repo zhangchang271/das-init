@@ -1,0 +1,31 @@
+# Scientific inputs and generated products stay outside version control.
+/data/
+/outputs/
+/cache/
+/logs/
+*.h5
+*.hdf5
+*.mat
+*.npy
+*.npz
+*.bin
+*.sgy
+*.segy
+*.tdms
+*.xlsx
+*.log
+*.zip
+*.tar
+*.tar.gz
+# Machine-specific configuration and environments.
+/configs/*.local.json
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.DS_Store
+*.asv
+.env
+.env.*
+*.pem
+*.key

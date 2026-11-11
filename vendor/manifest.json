@@ -1,0 +1,63 @@
+{
+  "description": "Unmodified third-party source snapshots used by the original SJDAS workflow. Minimal package __init__.py files only remove unrelated DASQt import side effects.",
+  "files": [
+    {
+      "path": "vendor/matlab/mCCFJ.m",
+      "sha256": "a2aa5640e59d8a2ecca94bec9f6e52d2b1b7b738017eed0733e8b7541a94e42c",
+      "source": "2026地震算法研讨会材料-杨博/mCCFJ.m",
+      "project": "NyHtQInv"
+    },
+    {
+      "path": "vendor/matlab/EDWav.m",
+      "sha256": "65549b29ab968995a013ff7c81e4fd2db17f48e50a972895f013d23b520ecfeb",
+      "source": "2026地震算法研讨会材料-杨博/EDWav.m",
+      "project": "NyHtQInv"
+    },
+    {
+      "path": "vendor/matlab/GW_mute.m",
+      "sha256": "b2b1000ede3daba77752df09791cdb9fd8f833f5ca372dcfd8402700291a76e2",
+      "source": "core/GW_mute.m",
+      "project": "NyHtQInv"
+    },
+    {
+      "path": "vendor/matlab/GW_mute1.m",
+      "sha256": "3f23ca1882ee0a87a0456b1b50cf6099f9d3dab1abc4b7f56ab069b9e8d28d14",
+      "source": "core/GW_mute1.m",
+      "project": "NyHtQInv"
+    },
+    {
+      "path": "vendor/dasqt/dasqt/features/signal_processing/backend/basic_tools/preprocessing.py",
+      "sha256": "be505705920b0d5e5d0a2f5235f653d3853724ce2eb8ae66adad5532522ef012",
+      "source": "dasqt/features/signal_processing/backend/basic_tools/preprocessing.py",
+      "project": "DASQt"
+    },
+    {
+      "path": "vendor/dasqt/dasqt/features/signal_processing/backend/basic_tools/filter.py",
+      "sha256": "df8f2d6e76800b9629ffebef321ba755b4bef36e31cedb86f0a2e89c17cac26b",
+      "source": "dasqt/features/signal_processing/backend/basic_tools/filter.py",
+      "project": "DASQt"
+    },
+    {
+      "path": "vendor/dasqt/dasqt/features/signal_processing/backend/advanced_tools/denoising.py",
+      "sha256": "4da9f4104a8d57ef8df33074be4d4992e0f25d305446ef039c4c70b36a8e9c06",
+      "source": "dasqt/features/signal_processing/backend/advanced_tools/denoising.py",
+      "project": "DASQt"
+    },
+    {
+      "path": "vendor/dasqt/dasqt/features/signal_processing/backend/advanced_tools/fdct.py",
+      "sha256": "b0266d05d48577072c3ec8c83d498736a51f1142ba185129eea550c95461ce47",
+      "source": "dasqt/features/signal_processing/backend/advanced_tools/fdct.py",
+      "project": "DASQt"
+    }
+  ],
+  "reference_scripts": [
+    {
+      "name": "run_sjdas_dasqt_mccfjflow2manual.m",
+      "sha256": "9d56e233e556584524accafb0d84da95d33c7d9e47fdd6b9e182df22e0f15013"
+    },
+    {
+      "name": "prepare_sjdas_dasqt_preproc.py",
+      "sha256": "5ccb44a3326435c1b3f3eb4866c8a0d6d2c4621abd7c7bbf9c38cab672e3d98c"
+    }
+  ]
+}
