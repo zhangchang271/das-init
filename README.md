@@ -52,20 +52,21 @@ bash scripts/run.sh configs/site.local.json ccf
 bash scripts/run.sh configs/site.local.json preview
 ```
 
-For a real small-data preview, extract one 600-second segment from the original
-500-channel San Jose HDF5 file, then run the normal workflow:
+仓库包含已确认的真实 San Jose demo [预览图和数值结果](docs/demo/README.md)，克隆后即可查看：
+
+![San Jose 50 道 CCF 和 F-J 频散谱](docs/demo/preview.png)
+
+如需从原始数据重新计算，先从 500 道 San Jose HDF5 中提取一个 600 秒片段，再运行主流程：
 
 ```bash
-python scripts/extract_demo_segment.py /path/to/BlossomHill_20230920_00-20230920_02_ch16700-17199.h5 \
+.venv/bin/python scripts/extract_demo_segment.py /path/to/BlossomHill_20230920_00-20230920_02_ch16700-17199.h5 \
   --output-dir demo_data_sanjose --segment-index 0
 bash scripts/run.sh configs/demo_small.json preview
 ```
 
-This keeps the real 500-channel array for DASQt common-mode preprocessing, then analyzes the first
-50 channels (50 m aperture) from one 600-second segment with EDWav, PSD-CCF, and F-J. The extracted
-HDF5 remains local and is not part of the repository; the preview is written under
-`outputs/demo_sanjose_small/`. `scripts/make_demo_data.py` remains available for synthetic installation
-smoke tests only; its spectrum is not a physical dispersion result.
+预处理保留完整 500 道阵列做 DASQt 共模去除，再对前 50 道做 EDWav、PSD-CCF 和 F-J。
+道间距为 1 m，参考道偏移范围为 0–49 m。重新计算的结果写入 `outputs/demo_sanjose_small/`；
+原始 HDF5 和计算缓存不随仓库分发。`scripts/make_demo_data.py` 只用于合成数据安装测试。
 
 若 MATLAB 不在 PATH 中，可设置 `MATLAB_BIN=/实际路径/bin/matlab`。
 在交互 MATLAB 中，从项目根目录运行以下命令，首次画 mask 并继续衰减提取：
@@ -97,6 +98,7 @@ CCF 设置、EDWav 道段选择或预处理片段变化会使对应日期的 CCF
 部署包包含后续代码，不能据此视为最终衰减已验证。其他地区需重新选择有效频段、速度滤波、mute 和人工 mask。
 默认 CCF 预览和 MAT 结果只保留 ±1 s 时间窗口；F-J 仍按完整频域 CCF 计算。`preview` 生成参考图样式的三联图：窗口内原始 CCF、仅用于显示的逐道 RMS 归一化 CCF，以及综合频散谱。1–3 Hz 低于 DASQt 预处理带通下限，只作显示参考，建议重点检查 3–12 Hz。
 默认 ridge 使用主流程的 `findpeaks` 趋势追踪。
+处理约定及其与 `passive-cross-correlation` skill 的对应关系见 [skill 回顾](docs/SKILL.md)。
 
 ## 验证
 
@@ -117,8 +119,8 @@ MATLAB 测试检查配置、PSD 公式、有效窗数、整体幅度缩放不变
 
 ## 来源
 
-原始 HDF5、MAT 缓存、结果、日志、本机配置和环境均由 `.gitignore` 排除。
-只有程序、配置示例、测试、文档及所需源码快照进入版本控制。
+原始 HDF5、计算缓存、批量结果、日志、本机配置和环境均由 `.gitignore` 排除。
+程序、配置示例、测试、文档、已确认的 `docs/demo/` 示例结果及所需源码快照进入版本控制。
 第三方来源与授权状态见 [THIRD_PARTY.md](THIRD_PARTY.md)；源码指纹见
 [vendor/manifest.json](vendor/manifest.json)。本项目没有统一开源许可证；
 公开可见不代表第三方代码已获统一授权，使用和再分发须遵守各自的授权条件。

@@ -8,6 +8,7 @@
 *.h5
 *.hdf5
 *.mat
+!/docs/demo/result.mat
 *.npy
 *.npz
 *.bin
