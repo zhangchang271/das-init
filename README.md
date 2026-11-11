@@ -95,7 +95,7 @@ results = runtests('tests/test_matlab.m');
 assert(all([results.Passed]));
 ```
 
-MATLAB 测试检查配置、PSD 对整体幅度缩放的不变性及路径参数传递；它们不能代替真实数据的频散和衰减 QC。
+MATLAB 测试检查配置、PSD 公式、有效窗数、整体幅度缩放不变性及路径参数传递；它们不能代替真实数据的频散和衰减 QC。
 本次实际检查及 MATLAB 退出码的限制见 [验证记录](docs/VALIDATION.md)。
 
 ## GitHub 与来源
