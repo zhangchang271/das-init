@@ -1,4 +1,4 @@
-# DASQt / EDWav / PSD-mCCFJ 部署流程
+# DAS 面波处理
 
 从 San Jose DAS 项目的正式 MATLAB 主控整理出的独立部署包。参考流程为
 `NyHtQInv/mainline6p0/MCCFJFLOW2Manual.m`，保留 MATLAB 科学计算与 Python DASQt 预处理。
@@ -16,11 +16,11 @@ DASQt 全道预处理 → EDWav 筛选 → 600 s PSD互相关 → 按有效窗�
 - 默认 CPU 计算；并行进程数由配置控制。DASQt 只带所需后端源码，不需要 Qt GUI 或 PyTorch。
 - MATLAB 及工具箱由目标机器提供，仓库不包含它们。
 
-## 安装与配置
-
-在克隆后的项目根目录运行：
+## 部署
 
 ```bash
+git clone https://github.com/zhangchang271/das-mccfj.git
+cd das-mccfj
 bash scripts/setup.sh
 cp configs/san_jose.example.json configs/site.local.json
 ```
@@ -71,7 +71,7 @@ CCF 设置、EDWav 道段选择或预处理片段变化会使对应日期的 CCF
 只改 mute、F-J 或 mask 时可复用 CCF。每次运行保存完整配置、MATLAB 环境及算法源码指纹。
 同一个输出目录应由一个任务写入；不同数据或并发任务使用不同 `out_dir`。
 
-## 参数与结果边界
+## 参数
 
 默认示例为原来的 500 道、1 m 道间距、10 m gauge length、200 Hz、144×600 s。
 第 1 道到全部 500 道构成参考道记录；默认没有计算 500×500 全道对。
@@ -98,19 +98,10 @@ assert(all([results.Passed]));
 MATLAB 测试检查配置、PSD 公式、有效窗数、整体幅度缩放不变性及路径参数传递；它们不能代替真实数据的频散和衰减 QC。
 本次实际检查及 MATLAB 退出码的限制见 [验证记录](docs/VALIDATION.md)。
 
-## GitHub 与来源
+## 来源
 
 原始 HDF5、MAT 缓存、结果、日志、本机配置和环境均由 `.gitignore` 排除。
 只有程序、配置示例、测试、文档及所需源码快照进入版本控制。
 第三方来源与授权状态见 [THIRD_PARTY.md](THIRD_PARTY.md)；源码指纹见
-[vendor/manifest.json](vendor/manifest.json)。包含杨博代码的这个快照先按私有研究仓库使用，
-公开发布前需要确认对应源码的再分发授权；目前没有给整个项目添加统一开源许可证。
-
-本地 Git 仓库已提交后，可用 GitHub CLI 创建并推送私有仓库：
-
-```bash
-gh auth login --hostname github.com
-gh repo create das-mccfj-workflow --private --source=. --remote=origin --push
-```
-
-在其他服务器上克隆该仓库，运行上面的安装命令，并新建该机器自己的配置即可。
+[vendor/manifest.json](vendor/manifest.json)。本项目没有统一开源许可证；
+公开可见不代表第三方代码已获统一授权，使用和再分发须遵守各自的授权条件。
