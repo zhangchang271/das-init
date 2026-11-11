@@ -1,4 +1,4 @@
-# DAS mCCFJ Init
+# DAS Init
 
 从 San Jose DAS 项目的正式 MATLAB 主控整理出的独立部署包。参考流程为
 `NyHtQInv/mainline6p0/MCCFJFLOW2Manual.m`，保留 MATLAB 科学计算与 Python DASQt 预处理。
@@ -19,8 +19,8 @@ DASQt 全道预处理 → EDWav 筛选 → 600 s PSD互相关 → 按有效窗�
 ## 部署
 
 ```bash
-git clone https://github.com/zhangchang271/das-mccfj-init.git
-cd das-mccfj-init
+git clone https://github.com/zhangchang271/das-init.git
+cd das-init
 bash scripts/setup.sh
 cp configs/san_jose.example.json configs/site.local.json
 ```
