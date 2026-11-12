@@ -14,7 +14,7 @@
 | 输入相关窗 | 一个完整 600 s 片段 |
 | EDWav | 50/50 道片段通过；每个参考道对有效窗数为 1 |
 | CCF 输出 | 401×50，保留 −1 至 +1 s 窗口 |
-| F-J | 完整频域 CCF 输入；H2、No-window、无 GW mute |
+| F-J | 正负支对应平均为完整半支，再重建频谱输入；H2、No-window、无 GW mute |
 | 频散谱 | 701×120；100–800 m/s，3.0–14.9 Hz |
 | ridge | 主流程 `findpeaks` 趋势追踪 |
 
@@ -63,4 +63,14 @@ addpath('scripts');
 export_demo;
 ```
 
-该命令将当前 `outputs/demo_sanjose_small/` 的预览图和精简结果更新到本目录。
+该命令将当前 `outputs/demo_sanjose_small/` 的预览图、精简结果及中间检查点更新到本目录，
+并同步输入缓存；只用于经确认后的基准更新。普通部署验收直接运行下方 `validate_demo`，
+保留原参考文件。若输入或算法发生改变，需同时核对并更新 `contract.json` 中的指纹、尺寸和版本。
+
+## 部署验收
+
+读取[数据与计算约定](../CONTRACT.md)和 [contract.json](contract.json)；
+[checkpoints.mat](checkpoints.mat) 保存真实计算的 EDWav 指标、mask、原生 CCF 选定频率行及道对。
+重跑后在 MATLAB 执行 `addpath('scripts'); validate_demo;`，同时比较中间和最终数值。
+其他程序导出相同字段的 MAT 后可用 `validate_demo('/path/to/result.mat')` 验收最终接口。
+这里只裁出最后 CCF 的 ±1 s，F-J 半支输入未裁成 1 s；正负支对应平均与维序均按约定实现。

@@ -16,6 +16,7 @@
 *.hdf5
 *.mat
 !/docs/demo/result.mat
+!/docs/demo/checkpoints.mat
 # Small DASQt-preprocessed input for the runnable San Jose demo.
 !/data/demo_sanjose_50ch/segments/*.mat
 *.npy

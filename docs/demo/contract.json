@@ -1,0 +1,313 @@
+{
+  "version": 1,
+  "scope": "Confirmed San Jose 50-channel observation workflow; not an attenuation or inversion acceptance test",
+  "dimensions": "MATLAB logical array dimensions; disk layout is not the interface",
+  "input": {
+    "file": "data/demo_sanjose_50ch/segments/segment_001_20230920_000000.mat",
+    "sha256": "b687f66d0a89ed2a77b8055b85f3799e7a8a5ba1bde39b13c30f257f25cd4ac9",
+    "wave_shape": [
+      120000,
+      50
+    ],
+    "wave_type": "float32",
+    "Fs_Hz": 200,
+    "seconds": 600,
+    "preprocessing_aperture_channels": 500,
+    "physical_channel_range_inclusive": [
+      16700,
+      16749
+    ],
+    "spacing_m": 1,
+    "gauge_length_m": 10,
+    "preprocessed": true
+  },
+  "semantics": {
+    "pair_index_base": 1,
+    "raw_channel_first0_index_base": 0,
+    "correlation": "conj(X_reference)*X_receiver / active_array_mean_power_plus_epsilon",
+    "stack": "per-pair valid-window weighted linear mean",
+    "branch": "average C(+t) and C(-t) for t>=0, then rebuild an even two-sided record before FFT",
+    "unmatched_negative_endpoint": "zero during symmetric reconstruction",
+    "ccf_output_window_s": [
+      -1,
+      1
+    ],
+    "ccf_output_crop_affects_fj": false,
+    "native_ifft_scale": "(number_of_full_nonnegative_frequency_bins)^2",
+    "velocity_filter_m_per_s": [
+      50,
+      1000
+    ],
+    "FJ_kernel": "H2",
+    "FJ_window": "No",
+    "FJ_hilbert_axis": "frequency (dimension 1)",
+    "GW_mute": false,
+    "spectrum": "abs(real(FJ.dsp))",
+    "daily_storage_type": "single",
+    "date_composite": "equal mean of valid daily amplitude spectra; no per-frequency normalization",
+    "ridge": "findpeaks plus trend tracking, 10 Hz seed, 140-450 m/s"
+  },
+  "native_ccf": {
+    "shape": [
+      18000,
+      50
+    ],
+    "frequency_first_Hz": 0,
+    "frequency_last_Hz": 29.998333333333335,
+    "frequency_spacing_Hz": 0.0016666666666666668,
+    "input_to_FJ_offsets_m": [
+      1,
+      49
+    ],
+    "pair_count": 50,
+    "valid_windows_per_pair": 1,
+    "correlate_full_nonnegative_bins": 60001
+  },
+  "result": {
+    "file": "docs/demo/result.mat",
+    "fields": {
+      "ccf_gather": {
+        "shape": [
+          401,
+          50
+        ],
+        "axes": [
+          "time",
+          "offset"
+        ],
+        "quantity": "folded and mirrored CCF, velocity-filtered except zero offset; no display RMS normalization"
+      },
+      "ccf_time_s": {
+        "shape": [
+          401,
+          1
+        ],
+        "unit": "s",
+        "start": -1,
+        "step": 0.005,
+        "end": 1
+      },
+      "offset_all": {
+        "shape": [
+          50,
+          1
+        ],
+        "unit": "m",
+        "start": 0,
+        "step": 1,
+        "end": 49
+      },
+      "spectrum": {
+        "shape": [
+          701,
+          120
+        ],
+        "axes": [
+          "phase_velocity",
+          "frequency"
+        ],
+        "quantity": "abs(real(FJ.dsp)), daily single then composite double"
+      },
+      "frequency": {
+        "shape": [
+          120,
+          1
+        ],
+        "unit": "Hz",
+        "start": 3,
+        "step": 0.1,
+        "end": 14.9
+      },
+      "velocity": {
+        "shape": [
+          701,
+          1
+        ],
+        "unit": "m/s",
+        "start": 100,
+        "step": 1,
+        "end": 800
+      },
+      "ridge_velocity": {
+        "shape": [
+          120,
+          1
+        ],
+        "unit": "m/s"
+      },
+      "count_sum": {
+        "shape": [
+          1,
+          50
+        ],
+        "quantity": "valid windows per original pair"
+      }
+    }
+  },
+  "checkpoints": {
+    "file": "docs/demo/checkpoints.mat",
+    "frequency_selection": "MATLAB rows 1:60:B of actual native cache",
+    "frequency_index_base": 1,
+    "fields": [
+      "proxy",
+      "keep",
+      "raw_valid",
+      "frequency_index1",
+      "cache_frequency",
+      "cache_ccf",
+      "cache_size",
+      "cache_frequency_endpoints",
+      "pair_distance_m",
+      "pair_index1",
+      "count_sum"
+    ],
+    "sparse": true,
+    "field_contracts": {
+      "proxy": {
+        "shape": [
+          1,
+          50
+        ],
+        "axes": [
+          "segment",
+          "channel"
+        ],
+        "quantity": "EDWav result(1) for each accepted raw channel"
+      },
+      "keep": {
+        "shape": [
+          1,
+          50
+        ],
+        "axes": [
+          "segment",
+          "channel"
+        ],
+        "quantity": "boolean screening mask; exact comparison"
+      },
+      "raw_valid": {
+        "shape": [
+          1,
+          50
+        ],
+        "axes": [
+          "segment",
+          "channel"
+        ],
+        "quantity": "boolean raw-input validity mask; exact comparison"
+      },
+      "frequency_index1": {
+        "shape": [
+          300,
+          1
+        ],
+        "axes": [
+          "selected_frequency_row"
+        ],
+        "quantity": "1-based rows in native cache, 1:60:B"
+      },
+      "cache_frequency": {
+        "shape": [
+          300,
+          1
+        ],
+        "axes": [
+          "selected_frequency_row"
+        ],
+        "quantity": "actual frequency in Hz"
+      },
+      "cache_ccf": {
+        "shape": [
+          300,
+          50
+        ],
+        "axes": [
+          "selected_frequency_row",
+          "pair"
+        ],
+        "quantity": "complex PSD-normalized cross spectrum before binning/filtering/folding"
+      },
+      "cache_size": {
+        "shape": [
+          1,
+          2
+        ],
+        "axes": [
+          "row_vector",
+          "size_entry"
+        ],
+        "quantity": "native cache [frequency_count,pair_count]"
+      },
+      "cache_frequency_endpoints": {
+        "shape": [
+          2,
+          1
+        ],
+        "axes": [
+          "endpoint"
+        ],
+        "quantity": "first and last native cache frequencies in Hz"
+      },
+      "pair_distance_m": {
+        "shape": [
+          50,
+          1
+        ],
+        "axes": [
+          "pair"
+        ],
+        "quantity": "reference-receiver distance in m"
+      },
+      "pair_index1": {
+        "shape": [
+          50,
+          2
+        ],
+        "axes": [
+          "pair",
+          "reference_then_receiver"
+        ],
+        "quantity": "1-based local array indices"
+      },
+      "count_sum": {
+        "shape": [
+          1,
+          50
+        ],
+        "axes": [
+          "row_vector",
+          "pair"
+        ],
+        "quantity": "valid temporal windows for each original pair"
+      }
+    }
+  },
+  "validation": {
+    "relative": 1e-05,
+    "value_absolute": 1e-10,
+    "axis_absolute": 1e-09,
+    "ridge_absolute_m_per_s": 0.5,
+    "counts_and_masks": "exact",
+    "rule": "Both Frobenius error <= atol*sqrt(n)+rtol*norm(reference), and max error <= atol+rtol*max(abs(reference)); shapes must match exactly"
+  },
+  "reference_revision": "4d6bf00a74fa238ecf49dd79a168312e56170fc4",
+  "working_ccf": {
+    "reconstruction_df_Hz": 0.0016666666666669272,
+    "full_nonnegative_bins": 60000,
+    "reconstructed_frequency_last_Hz": 99.99833333334897,
+    "time_axis_rows": 119998,
+    "time_axis_endpoints_s": [
+      -299.995,
+      299.99
+    ],
+    "vendor_time_matrix_rows": 119999,
+    "half_shape": [
+      59999,
+      49
+    ],
+    "half_time_end_s": 299.99,
+    "symmetric_fft_rows": 119998,
+    "native_ifft_gain": 3600000000,
+    "known_limitation": "Median-derived frequency spacing changes endpoint count; vendor cct has one more row than time axis. Baseline preserves current indexing; a consistent FFT grid has not been implemented."
+  }
+}

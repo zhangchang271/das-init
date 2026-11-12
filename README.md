@@ -9,6 +9,9 @@ DASQt 全道预处理 → EDWav 筛选 → 600 s PSD互相关 → 按有效窗�
 → 综合谱人工 polygon → 各日自适应 mask → F-J反变换 → 衰减提取
 ```
 
+部署或重写前先读[数据与计算约定](docs/CONTRACT.md)：逐步说明物理含义、输入输出维度、
+正负支折叠、FFT 缩放与数值验收。[demo 接口清单](docs/demo/contract.json)可供程序读取。
+
 ## 环境
 
 - Linux；推荐 MATLAB R2023a 或更新版本，Signal Processing Toolbox、Parallel Computing Toolbox。
@@ -95,11 +98,15 @@ CCF 设置、EDWav 道段选择或预处理片段变化会使对应日期的 CCF
 
 当前 San Jose 原始项目已运行到综合 F-J；人工 mask 与最终衰减尚未完成。
 部署包包含后续代码，不能据此视为最终衰减已验证。其他地区需重新选择有效频段、速度滤波、mute 和人工 mask。
-默认 CCF 预览和 MAT 结果只保留 ±1 s 时间窗口；F-J 仍按完整频域 CCF 计算。`preview` 生成参考图样式的三联图：窗口内原始 CCF、仅用于显示的逐道 RMS 归一化 CCF，以及综合频散谱。1–3 Hz 低于 DASQt 预处理带通下限，只作显示参考，建议重点检查 3–12 Hz。
+默认 CCF 预览和 MAT 结果只保留 ±1 s 时间窗口；F-J 使用正负两支对应平均后的完整半支重建频谱，未按 ±1 s 截断。`preview` 生成参考图样式的三联图：窗口内原始 CCF、仅用于显示的逐道 RMS 归一化 CCF，以及综合频散谱。1–3 Hz 低于 DASQt 预处理带通下限，只作显示参考，建议重点检查 3–12 Hz。
 默认 ridge 使用主流程的 `findpeaks` 趋势追踪。
 处理约定及其与 `passive-cross-correlation` skill 的对应关系见 [skill 回顾](docs/SKILL.md)。
 
 ## 验证
+
+真实 demo 重跑后，在 MATLAB 中执行 `addpath('scripts'); report = validate_demo;`。
+它对比筛选、中间 CCF、最终窗口及频散谱幅值；其他程序可导出同字段 MAT 进行比较。
+详见[验收接口](docs/CONTRACT.md#9-最终文件接口与验收)。
 
 ```bash
 .venv/bin/python -m unittest discover -s tests -p 'test_*.py' -v
