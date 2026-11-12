@@ -1,6 +1,8 @@
 {
-  "raw_dir": "../demo_data_sanjose",
+  "raw_dir": "../data",
   "out_dir": "../outputs/demo_sanjose_small",
+  "dasqt_cache_dir": "../data/demo_sanjose_50ch",
+  "dasqt_make_cache": false,
   "stage": "preview",
   "Fs": 200,
   "n_station": 50,

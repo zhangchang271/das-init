@@ -56,17 +56,16 @@ bash scripts/run.sh configs/site.local.json preview
 
 ![San Jose 50 道 CCF 和 F-J 频散谱](docs/demo/preview.png)
 
-如需从原始数据重新计算，先从 500 道 San Jose HDF5 中提取一个 600 秒片段，再运行主流程：
+demo 附带一份 600 秒、50 道的 DASQt 预处理缓存，可直接重跑 EDWav、PSD-CCF 和 F-J：
 
 ```bash
-.venv/bin/python scripts/extract_demo_segment.py /path/to/BlossomHill_20230920_00-20230920_02_ch16700-17199.h5 \
-  --output-dir demo_data_sanjose --segment-index 0
 bash scripts/run.sh configs/demo_small.json preview
 ```
 
-预处理保留完整 500 道阵列做 DASQt 共模去除，再对前 50 道做 EDWav、PSD-CCF 和 F-J。
-道间距为 1 m，参考道偏移范围为 0–49 m。重新计算的结果写入 `outputs/demo_sanjose_small/`；
-原始 HDF5 和计算缓存不随仓库分发。`scripts/make_demo_data.py` 只用于合成数据安装测试。
+缓存中的 50 道波形来自完整 500 道阵列的 DASQt 共模预处理，保持了本仓库展示结果的输入。
+原始 500 道 HDF5 不随仓库分发；如需从原始数据重新执行预处理，可用
+`scripts/extract_demo_segment.py` 提取 600 秒片段。重跑输出写入 `outputs/demo_sanjose_small/`。
+`scripts/make_demo_data.py` 只用于合成数据安装测试。
 
 若 MATLAB 不在 PATH 中，可设置 `MATLAB_BIN=/实际路径/bin/matlab`。
 在交互 MATLAB 中，从项目根目录运行以下命令，首次画 mask 并继续衰减提取：

@@ -1,5 +1,12 @@
 # Scientific inputs and generated products stay outside version control.
 /data/
+# One preprocessed segment is bundled so the 50-channel demo runs from clone.
+!/data/
+/data/*
+!/data/demo_sanjose_50ch/
+/data/demo_sanjose_50ch/*
+!/data/demo_sanjose_50ch/segments/
+/data/demo_sanjose_50ch/segments/*
 /demo_data/
 /demo_data_sanjose/
 /outputs/
@@ -9,6 +16,8 @@
 *.hdf5
 *.mat
 !/docs/demo/result.mat
+# Small DASQt-preprocessed input for the runnable San Jose demo.
+!/data/demo_sanjose_50ch/segments/*.mat
 *.npy
 *.npz
 *.bin

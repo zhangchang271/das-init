@@ -32,6 +32,16 @@ verifyEqual(testCase,demo.max_segments,1);
 verifyEqual(testCase,demo.minimum_segments_per_window,1);
 verifyTrue(testCase,demo.dasqt_common_mode_removal);
 verifyEqual(testCase,demo.ccf_window_half_s,1);
+verifyFalse(testCase,demo.dasqt_make_cache);
+verifyEqual(testCase,demo.dasqt_cache_dir, ...
+    fullfile(root,'configs','..','data','demo_sanjose_50ch'));
+demo_files = dir(fullfile(demo.dasqt_cache_dir,'segments','segment_*.mat'));
+verifyEqual(testCase,numel(demo_files),1);
+demo_segment = load(fullfile(demo_files(1).folder,demo_files(1).name), ...
+    'wave','raw_valid','dasqt_full_channel_count');
+verifySize(testCase,demo_segment.wave,[120000 50]);
+verifyTrue(testCase,all(demo_segment.raw_valid(:)));
+verifyEqual(testCase,demo_segment.dasqt_full_channel_count,int32(500));
 cfg = workflow_config(fullfile(root,'configs','san_jose.example.json'),'pick');
 verifyEqual(testCase,cfg.stage,'pick');
 end

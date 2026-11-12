@@ -3,6 +3,7 @@ function export_demo()
 root = fileparts(fileparts(mfilename('fullpath')));
 source_dir = fullfile(root,'outputs','demo_sanjose_small');
 target_dir = fullfile(root,'docs','demo');
+cache_target = fullfile(root,'data','demo_sanjose_50ch','segments');
 S = load(fullfile(source_dir,'ccf_preview_50ch.mat'));
 C = load(fullfile(source_dir,'mccfj_composite_50ch.mat'), ...
     'dates','keep','raw_valid','reference_valid_segments','pair_window_count');
@@ -41,8 +42,13 @@ R.preprocessing_channel_count = A.dasqt_full_channel_count;
 R.spectrum_quantity = 'abs(real(FJ.dsp))';
 
 if ~isfolder(target_dir), mkdir(target_dir); end
+if ~isfolder(cache_target), mkdir(cache_target); end
 save(fullfile(target_dir,'result.mat'),'-struct','R','-v7');
 copyfile(fullfile(source_dir,'mccfj_composite_50ch.png'), ...
     fullfile(target_dir,'preview.png'));
-fprintf('Demo image and numerical result exported to docs/demo/.\n');
+cache_files = dir(fullfile(source_dir,'dasqt_cache','segments','segment_*.mat'));
+assert(numel(cache_files)==1,'Expected one preprocessed demo segment.');
+copyfile(fullfile(cache_files(1).folder,cache_files(1).name), ...
+    fullfile(cache_target,cache_files(1).name));
+fprintf('Demo input cache, image, and numerical result exported.\n');
 end
