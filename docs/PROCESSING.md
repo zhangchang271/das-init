@@ -20,7 +20,8 @@
 3. 对完整读取阵列计算中位数共模，按 DASQt 投影公式去除，再选目标道。输出 float32 MAT 波形。
 4. MATLAB 转 double；EDWav 在 6–30 Hz 计算逐道片段指标，以逐道 `log(proxy)` 的
    `median + 2×MAD` 筛选。拒绝道置零，不加入有效道的 PSD 均值。
-5. 每个 600 s 片段单独调用 `mCCFJ.correlate`，CL=600×Fs、OL=0、FL=CL、FD=1。
+5. 每个 600 s 片段单独调用 `mCCFJ.correlate`，CL=600×Fs、OL=0、FL=0（函数内令 FL=CL）、FD=1；
+   每段只计算一个不重叠相关窗。
    同一窗口内以有效道的平均功率谱归一化互谱：
 
    `Cij(f) = conj(Xi(f))*Xj(f) / (mean_valid_k(|Xk(f)|²) + epsilon)`，
@@ -31,7 +32,7 @@
 8. H2 F-J 保留 `abs(real(FJ.dsp))`，不逐频率归一化；综合谱是有效日期原始 F-J 幅值的逐点平均。
 9. 人工 polygon 建立综合 mask，按各日 ridge 速度偏移调整，再 F-J 反变换和 J0 衰减拟合。
 
-默认 CCF 预览和 MAT 结果只保留 -1 至 +1 s 时间窗口；三联图同时显示该窗口内的原始 CCF、仅用于显示的逐道 RMS 归一化 CCF，以及综合频散谱。600 s 是每段输入的相关计算窗。F-J 使用完整半支重建频谱，不受此输出窗口裁剪影响；调整 `ccf_window_half_s` 后无需重算 CCF cache。旧配置中的 `preview_time_max_s` 仍可读取，并映射为同一窗口半宽。
+默认 CCF 预览和 MAT 结果只保留 -1 至 +1 s 时间窗口；三联图同时显示该窗口内的原始 CCF、仅用于显示的逐道 RMS 归一化 CCF，以及综合频散谱。每次 `correlate` 输入一个 600 s 数据窗（200 Hz 时为 120000 点），不重叠计算；日期 CCF 由多个片段各自计算后按有效片段数叠加。最终 ±1 s 通过裁选时间行得到，窗口外样本没有置零。F-J 使用完整半支重建频谱，不受此输出窗口裁剪影响；调整 `ccf_window_half_s` 后无需重算 CCF cache。旧配置中的 `preview_time_max_s` 仍可读取，并映射为同一窗口半宽。
 1–3 Hz 低于 DASQt 预处理带通下限，应重点检查 3–12 Hz。将 `apply_gw_mute` 设为 true 可启用配置的双边 mute。
 
 ## 配置和阶段
