@@ -11,6 +11,7 @@ DASQt 全道预处理 → EDWav 筛选 → 600 s PSD互相关 → 按有效窗�
 
 部署或重写前先读[数据与计算约定](docs/CONTRACT.md)：逐步说明物理含义、输入输出维度、
 正负支折叠、FFT 缩放与数值验收。[demo 接口清单](docs/demo/contract.json)可供程序读取。
+MATLAB 变量命名和代码组织请参照[代码风格约定](docs/CODE_STYLE.md)；其中明确了 San Jose 正确结果主脚本、NyHt 流程来源和部署封装各自适用范围。
 
 ## 环境
 
