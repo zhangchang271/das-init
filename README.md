@@ -102,6 +102,7 @@ CCF 设置、EDWav 道段选择或预处理片段变化会使对应日期的 CCF
 默认 CCF 预览和 MAT 结果只保留 ±1 s 时间窗口；F-J 使用正负两支对应平均后的完整半支重建频谱，未按 ±1 s 截断。`preview` 生成参考图样式的三联图：窗口内原始 CCF、仅用于显示的逐道 RMS 归一化 CCF，以及综合频散谱。1–3 Hz 低于 DASQt 预处理带通下限，只作显示参考，建议重点检查 3–12 Hz。
 默认 ridge 使用主流程的 `findpeaks` 趋势追踪。
 处理约定及其与 `passive-cross-correlation` skill 的对应关系见 [skill 回顾](docs/SKILL.md)。
+500 道、无 GW mute、正时延 0–3 s CCF 与 1–15 Hz F-J 基准图的逐项参数见[参考图参数表](docs/REFERENCE_FIGURE.md)；其中 CCF 图裁剪、F-J 计算范围和仓库 demo 的 ±1 s 输出窗口分别说明。
 
 ## 验证
 
